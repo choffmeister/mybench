@@ -3,9 +3,9 @@ package de.kddc.mybench
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import com.typesafe.config.Config
-import reactivemongo.api.{DefaultDB, MongoConnection, MongoDriver}
+import reactivemongo.api.{ DefaultDB, MongoConnection, MongoDriver }
 
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.{ Await, ExecutionContext }
 import scala.concurrent.duration._
 
 trait ServiceComponentsBase {

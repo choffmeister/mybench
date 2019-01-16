@@ -2,15 +2,15 @@ package de.kddc.mybench.repositories
 
 import java.util.UUID
 
-import akka.{Done, NotUsed}
+import akka.{ Done, NotUsed }
 import akka.stream.scaladsl.Source
-import de.choffmeister.microserviceutils.mongodb.bson.{InstantBSONProtocol, UUIDBSONProtocol}
+import de.choffmeister.microserviceutils.mongodb.bson.{ InstantBSONProtocol, UUIDBSONProtocol }
 import reactivemongo.api.DefaultDB
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.bson._
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ Await, ExecutionContext, Future }
 
 class BenchRepository(db: DefaultDB)(implicit ec: ExecutionContext) {
   import BenchRepository.BSONProtocol._
@@ -42,12 +42,12 @@ object BenchRepository {
     implicit val LocationHandler: BSONDocumentHandler[Location] = Macros.handler[Location]
     implicit val BenchHandler: BSONDocumentHandler[Bench] = Macros.handler[Bench]
 
-//    implicit val BenchHandler = new BSONDocumentWriter[Bench] with BSONDocumentReader[Bench] {
-//      override def read(bson: BSONDocument): Bench = ???
-//      override def write(t: Bench): BSONDocument = BSONDocument(
-//        "id" -> uuidReaderWriter.write(t.id),
-//        "name" -> BSONString(t.name),
-//      )
-//    }
+    //    implicit val BenchHandler = new BSONDocumentWriter[Bench] with BSONDocumentReader[Bench] {
+    //      override def read(bson: BSONDocument): Bench = ???
+    //      override def write(t: Bench): BSONDocument = BSONDocument(
+    //        "id" -> uuidReaderWriter.write(t.id),
+    //        "name" -> BSONString(t.name),
+    //      )
+    //    }
   }
 }
