@@ -70,7 +70,17 @@ class HttpServer(benchRepository: BenchRepository)(implicit executionContext: Ex
     }
   }
 
-  def routes = pathPrefix("benches")(concat(listBenchesRoute, listBenchesRouteStreaming, listBenchesRouteWebsocket, retrieveBenchRoute))
+  def createBenchRoute = pathEnd {
+    post {
+      entity(as[Bench]) { body =>
+        onSuccess(benchRepository.create(body)) { bench =>
+          complete(bench)
+        }
+      }
+    }
+  }
+
+  def routes = pathPrefix("benches")(concat(listBenchesRoute, listBenchesRouteStreaming, listBenchesRouteWebsocket, retrieveBenchRoute, createBenchRoute))
 
   def onSuccessAndDefined[T](res: Future[Option[T]]): Directive1[T] = {
     onSuccess(res).flatMap {

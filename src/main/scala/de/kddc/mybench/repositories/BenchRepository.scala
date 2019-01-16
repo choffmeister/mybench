@@ -49,6 +49,10 @@ class BenchRepository(db: DefaultDB)(implicit ec: ExecutionContext, mat: Materia
   def findByName(name: String): Future[Option[Bench]] = {
     collection.find(BSONDocument("name" -> name)).one[Bench]
   }
+
+  def create(bench: Bench): Future[Bench] = {
+    collection.insert(bench).map(_ => bench)
+  }
 }
 
 object BenchRepository extends LazyLogging {
