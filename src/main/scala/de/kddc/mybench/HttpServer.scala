@@ -1,18 +1,19 @@
 package de.kddc.mybench
 
-import akka.http.scaladsl.common.{ EntityStreamingSupport, JsonEntityStreamingSupport }
+import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.model.headers.CustomHeader
 import akka.http.scaladsl.model.ws.TextMessage
-import akka.http.scaladsl.server.Directive1
+import akka.http.scaladsl.server.{Directive1, MalformedQueryParamRejection}
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{ Flow, Sink }
+import akka.stream.scaladsl.{Flow, Sink}
 import de.choffmeister.microserviceutils.json.UUIDJsonProtocol
 import de.kddc.mybench.repositories.BenchRepository
 import de.kddc.mybench.repositories.BenchRepository._
-import spray.json.{ DefaultJsonProtocol, RootJsonFormat }
+import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 object HttpServerJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
   implicit val LocationJsonFormat: RootJsonFormat[Location] = jsonFormat2(Location)
@@ -24,9 +25,13 @@ class HttpServer(benchRepository: BenchRepository)(implicit executionContext: Ex
 
   def listBenchesRoute = pathEnd {
     get {
-      val benchesF = benchRepository.all.runWith(Sink.collection)
-      onSuccess(benchesF) { benches =>
-        complete(benches)
+      paging(10) { case (from, limit) =>
+        val benchesF = benchRepository.all(from, limit)
+        onSuccess(benchesF) { case (benches, count) =>
+          respondWithHeader(`X-Total`(count)) {
+            complete(benches)
+          }
+        }
       }
     }
   }
@@ -73,4 +78,24 @@ class HttpServer(benchRepository: BenchRepository)(implicit executionContext: Ex
       case None => reject
     }
   }
+
+  def paging(defaultLimit: Int): Directive1[(Int, Int)] = {
+    parameters('from.as[Int].?, 'limit.as[Int].?).tflatMap {
+      case (from, _) if from.exists(_ < 0) =>
+        reject(MalformedQueryParamRejection("from", "Must not be negative"))
+      case (from, limit) =>
+        provide((
+          from.getOrElse(0),
+          limit.getOrElse(defaultLimit)
+        ))
+    }
+  }
 }
+
+final case class `X-Total`(total: Long) extends CustomHeader {
+  override val name: String = "X-Total"
+  override val value: String = total.toString
+  override val renderInRequests: Boolean = false
+  override val renderInResponses: Boolean = true
+}
+
