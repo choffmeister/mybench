@@ -1,5 +1,7 @@
 package de.kddc.mybench
 
+import java.util.UUID
+
 import akka.http.scaladsl.common.{EntityStreamingSupport, JsonEntityStreamingSupport}
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.headers.CustomHeader
@@ -12,12 +14,14 @@ import de.choffmeister.microserviceutils.json.UUIDJsonProtocol
 import de.kddc.mybench.repositories.BenchRepository
 import de.kddc.mybench.repositories.BenchRepository._
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
+import de.choffmeister.microserviceutils.json.RootJsonFormatWithDefault._
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object HttpServerJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
   implicit val LocationJsonFormat: RootJsonFormat[Location] = jsonFormat2(Location)
   implicit val BenchJsonFormat: RootJsonFormat[Bench] = jsonFormat3(Bench)
+    .withDefault("_id", UUID.fromString("00000000-0000-0000-0000-000000000000"))
 }
 
 class HttpServer(benchRepository: BenchRepository)(implicit executionContext: ExecutionContext, materializer: ActorMaterializer) extends SprayJsonSupport {
@@ -73,7 +77,7 @@ class HttpServer(benchRepository: BenchRepository)(implicit executionContext: Ex
   def createBenchRoute = pathEnd {
     post {
       entity(as[Bench]) { body =>
-        onSuccess(benchRepository.create(body)) { bench =>
+        onSuccess(benchRepository.create(body.copy(_id = UUID.randomUUID))) { bench =>
           complete(bench)
         }
       }
