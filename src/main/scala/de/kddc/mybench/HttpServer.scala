@@ -7,16 +7,19 @@ import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink}
-import com.typesafe.config.Config
+import de.choffmeister.microserviceutils.json.UUIDJsonProtocol
+import de.kddc.mybench.repositories.BenchRepository
+import de.kddc.mybench.repositories.BenchRepository._
 import spray.json.{DefaultJsonProtocol, RootJsonFormat}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-object HttpServerJsonProtocol extends DefaultJsonProtocol {
+object HttpServerJsonProtocol extends DefaultJsonProtocol with UUIDJsonProtocol {
+  implicit val LocationJsonFormat: RootJsonFormat[Location] = jsonFormat2(Location)
   implicit val BenchJsonFormat: RootJsonFormat[Bench] = jsonFormat3(Bench)
 }
 
-class HttpServer(benchRepository: BenchRepository, userRepository: UserRepository)(implicit executionContext: ExecutionContext, materializer: ActorMaterializer) extends SprayJsonSupport {
+class HttpServer(benchRepository: BenchRepository)(implicit executionContext: ExecutionContext, materializer: ActorMaterializer) extends SprayJsonSupport {
   import HttpServerJsonProtocol._
 
   def listBenchesRoute = pathEnd {
@@ -54,7 +57,7 @@ class HttpServer(benchRepository: BenchRepository, userRepository: UserRepositor
     }
   }
 
-  def retrieveBenchRoute = path(LongNumber) { id =>
+  def retrieveBenchRoute = path(JavaUUID) { id =>
     get {
       onSuccessAndDefined(benchRepository.findById(id)) { bench =>
         complete(bench)

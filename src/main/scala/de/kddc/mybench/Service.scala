@@ -3,13 +3,13 @@ package de.kddc.mybench
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import com.softwaremill.macwire._
+import de.kddc.mybench.repositories.BenchRepository
 
 import scala.util.{Failure, Success}
 
 trait ServiceComponents {
     this: ServiceComponentsBase
     with MongoDbComponentsBase =>
-  lazy val userRepository = wire[UserRepository]
   lazy val benchRepository = wire[BenchRepository]
   lazy val httpServer = wire[HttpServer]
 }
