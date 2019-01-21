@@ -19,24 +19,37 @@ object Application {
     val service = wire[Service]
     service.start()
 
-    val bytes = Source(0L until 1024L * 1024L * 1024L)
+    val bytes = Source(0 until 10 * 1024)
       .map(i => (i % 256).toByte)
       .grouped(1024)
       .map(bs => ByteString(bs.toArray))
 
     bytes
       .viaMat(hashFlow("SHA-1"))(Keep.right)
+      .viaMat(countFlow())((l, r) => l.zip(r))
       .map { chunk =>
         println(s"chunk $chunk")
         chunk
       }
-      .mapMaterializedValue { hashF =>
-        hashF.onComplete {
-          case Success(hash) => println(s"hash $hash")
+      .mapMaterializedValue { hashCountF =>
+        hashCountF.onComplete {
+          case Success(hash) => println(s"hash and count $hash")
           case Failure(error) => println(s"error $error")
         }
       }
       .runWith(Sink.ignore)
+
+    def countFlow[T](): Flow[T, T, Future[Long]] = {
+      var counter = 0L
+      Flow[T]
+        .map { elem =>
+          counter = counter + 1
+          elem
+        }
+        .watchTermination() { (_, done) =>
+          done.map(_ => counter)
+        }
+    }
 
     def hashFlow(algorithm: String): Flow[ByteString, ByteString, Future[ByteString]] = {
       val digest = MessageDigest.getInstance(algorithm)
