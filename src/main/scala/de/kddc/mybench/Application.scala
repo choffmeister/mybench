@@ -2,8 +2,9 @@ package de.kddc.mybench
 
 import java.security.MessageDigest
 
+import akka.NotUsed
 import akka.actor.{Actor, ActorSystem, Cancellable, Props}
-import akka.stream.{ActorMaterializer, ThrottleMode}
+import akka.stream.{ActorMaterializer, OverflowStrategy, ThrottleMode}
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source, StreamConverters}
 import akka.util.ByteString
 import com.softwaremill.macwire._
@@ -80,12 +81,24 @@ object Application {
     service.start()
 
     val sender = actorSystem.actorOf(Props[MailSender])
-    val mailgunQueue = Source(1 to 2)
+    val mailgunQueue1 = Source(1 to 2)
       .throttle(1, 1.second, 1, ThrottleMode.shaping)
       .map(i => Mail(s"user$i@domain.com", s"Mail $i", ""))
+
+    val mailgunQueue2 = Source.actorRef[Mail](10, OverflowStrategy.dropNew)
+      .mapMaterializedValue { ref =>
+        Future {
+          for (i <- 1 to 10) {
+            Thread.sleep(1000)
+            ref ! Mail(s"user$i@domain.com", s"Actor Mail $i", "")
+          }
+        }
+        NotUsed
+      }
+
+//    mailgunQueue1
+    mailgunQueue2
       .to(Sink.actorRefWithAck(sender, Init, Ack, Complete, err => Failed(err)))
       .run()
-
-
   }
 }
